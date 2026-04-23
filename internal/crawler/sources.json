@@ -1,0 +1,240 @@
+[
+  { "name": "Light Reading", "feed_url": "https://www.lightreading.com/rss.xml", "region": "global" },
+  { "name": "TelecomTV", "feed_url": "https://www.telecomtv.com/content/broadband/rss.xml", "region": "global" },
+  { "name": "RCR Wireless News", "feed_url": "https://feeds.feedburner.com/rcrwireless/sLmV", "region": "global" },
+  {
+    "name": "Telecoms.com",
+    "region": "global",
+    "access": {
+      "method": "html_list",
+      "url": "https://telecoms.com/wireless-networking",
+      "html_list": {
+        "article_selector": ".ContentPreview-Wrapper",
+        "title_link_selector": "a[data-testid='preview-default-title']",
+        "time_selector": ".VerticalCard-Date"
+      }
+    }
+  },
+  { "name": "GSMA Newsroom", "feed_url": "https://www.gsma.com/newsroom/?cat=3&feed=rss2", "region": "global" },
+  { "name": "Total Telecom", "feed_url": "https://totaltele.com/category/technology/feed/", "region": "global" },
+  { "name": "Mobile World Live", "feed_url": "https://www.mobileworldlive.com/feed/", "region": "global" },
+  { "name": "Telegeography Blog", "feed_url": "https://resources.telegeography.com/rss.xml", "region": "global" },
+  { "name": "The Register Networks", "feed_url": "https://www.theregister.com/networks/headlines.atom", "region": "global" },
+  { "name": "Developing Telecoms", "feed_url": "https://developingtelecoms.com/?format=feed&type=rss", "region": "global" },
+  { "name": "Capacity Media", "feed_url": "https://www.capacitymedia.com/feed/", "region": "global" },
+  { "name": "Mobile Europe", "feed_url": "https://www.mobileeurope.co.uk/feed/", "region": "global" },
+  { "name": "ETSI Newsroom", "feed_url": "https://www.etsi.org/?option=com_obrss&task=feed&id=2:rss-news-press&format=feed&Itemid=1094", "region": "global", "category": "regulation" },
+  {
+    "name": "3GPP News",
+    "region": "global",
+    "category": "regulation",
+    "access": {
+      "method": "html_list",
+      "url": "https://www.3gpp.org/news-events",
+      "html_list": {
+        "article_selector": "ul.mod-articlescategory > li > ul > li",
+        "title_link_selector": "a.mod-articles-category-title",
+        "time_selector": "p.mod-articles-category-date",
+        "url_contains": "/news-events/"
+      }
+    }
+  },
+  { "name": "CircleID", "feed_url": "https://circleid.com/feeds/main/", "region": "global" },
+  {
+    "name": "Telecom Tech News",
+    "region": "global",
+    "access": {
+      "method": "api",
+      "url": "https://www.telecomstechnews.com/wp-json/wp/v2/posts?per_page=25&_fields=link,date_gmt,title,excerpt",
+      "api": {
+        "title_field": "title.rendered",
+        "url_field": "link",
+        "description_field": "excerpt.rendered",
+        "time_field": "date_gmt",
+        "time_format": "2006-01-02T15:04:05"
+      }
+    }
+  },
+  { "name": "Telecom Ramblings", "feed_url": "https://www.telecomramblings.com/feed/", "region": "global" },
+
+  { "name": "Fierce Telecom", "feed_url": "https://www.fiercetelecom.com/rss/xml", "region": "north-america" },
+  { "name": "Fierce Wireless", "feed_url": "https://www.fiercewireless.com/rss/xml", "region": "north-america" },
+  { "name": "Fierce Network", "feed_url": "https://www.fierce-network.com/rss/xml", "region": "north-america" },
+  { "name": "CommLaw Monitor", "feed_url": "https://www.commlawmonitor.com/feed/", "region": "north-america", "category": "regulation" },
+  { "name": "Telecompetitor", "feed_url": "https://www.telecompetitor.com/feed/", "region": "north-america" },
+  { "name": "Multichannel News", "feed_url": "https://www.nexttv.com/rss", "region": "north-america" },
+  {
+    "name": "Wireless Week",
+    "region": "north-america",
+    "access": {
+      "method": "api",
+      "url": "https://www.5gtechnologyworld.com/wp-json/wp/v2/posts?per_page=25&_fields=link,date_gmt,title,excerpt",
+      "api": {
+        "title_field": "title.rendered",
+        "url_field": "link",
+        "description_field": "excerpt.rendered",
+        "time_field": "date_gmt",
+        "time_format": "2006-01-02T15:04:05"
+      }
+    }
+  },
+  { "name": "USTelecom Blog", "feed_url": "https://ustelecom.org/feed/", "region": "north-america", "category": "regulation" },
+  { "name": "Beyond Telecom Law", "feed_url": "https://beyondtelecomlawblog.com/feed/", "region": "north-america", "category": "regulation" },
+
+  {
+    "name": "Mexico Business News – Telecom",
+    "region": "north-america",
+    "access": {
+      "method": "html_list",
+      "url": "https://mexicobusiness.news/tag/telecom",
+      "html_list": {
+        "article_selector": "div.views-infinite-scroll-content-wrapper div.views-row",
+        "title_link_selector": ".sector-container-bottom-tit a",
+        "time_selector": ".sector-container-bottom-aut-dat",
+        "url_contains": "/news/"
+      }
+    }
+  },
+  {
+    "name": "El Economista – Telecomunicaciones",
+    "region": "north-america",
+    "requires_auth": true,
+    "auth": {
+      "auth_type": "cookie",
+      "notes": "Free registration at https://www.eleconomista.com.mx — log in, then copy the full Cookie request header from browser DevTools."
+    },
+    "access": {
+      "method": "html_list",
+      "url": "https://www.eleconomista.com.mx/tecnologia",
+      "html_list": {
+        "article_selector": "article.c-article",
+        "title_link_selector": "h2.c-article__title a",
+        "time_selector": "time.c-article__date",
+        "time_attr": "datetime",
+        "url_contains": "/tecnologia/"
+      }
+    }
+  },
+  {
+    "name": "Expansion MX – Tecnologia",
+    "feed_url": "https://expansion.mx/rss/tecnologia",
+    "region": "north-america",
+    "requires_auth": true,
+    "auth": {
+      "auth_type": "cookie",
+      "notes": "Free registration at https://expansion.mx — log in, then copy the full Cookie request header from browser DevTools."
+    }
+  },
+  {
+    "name": "El Financiero – Tecnologia",
+    "region": "north-america",
+    "access": {
+      "method": "html_list",
+      "url": "https://www.elfinanciero.com.mx/tags/tecnologia/",
+      "html_list": {
+        "article_selector": "div.b-results-list.b-results-list--show-image",
+        "title_link_selector": "h2.c-heading a",
+        "description_selector": "p.c-paragraph",
+        "time_selector": "time.c-date",
+        "time_attr": "datetime",
+        "url_contains": "/202"
+      }
+    }
+  },
+
+  {
+    "name": "BNamericas Telecom",
+    "region": "latam",
+    "access": {
+      "method": "html_list",
+      "url": "https://www.bnamericas.com/en/tag/ict",
+      "html_list": {
+        "article_selector": "div.read-more-wrap",
+        "title_link_selector": "a.font-size-24",
+        "description_selector": "p.read-more-text.content span",
+        "time_selector": "div.content-type",
+        "url_contains": "/en/"
+      }
+    }
+  },
+  { "name": "TeleSemana", "feed_url": "https://www.telesemana.com/feed/", "region": "latam" },
+  { "name": "IT Masters Mag LATAM", "feed_url": "https://www.itmastersmag.com/feed/", "region": "latam" },
+  { "name": "Latinvex", "feed_url": "https://latinvex.com/feed/", "region": "latam" },
+  { "name": "MercoPress Technology", "feed_url": "https://en.mercopress.com/rss", "region": "latam" },
+  { "name": "Developing Telecoms LATAM", "feed_url": "https://developingtelecoms.com/regions.html?filter_tag%5B0%5D=Latin%20America&format=feed&type=rss", "region": "latam" },
+  {
+    "name": "Telecompaper",
+    "region": "global",
+    "requires_auth": true,
+    "auth": {
+      "auth_type": "basic",
+      "notes": "Paid subscription. Register at https://www.telecompaper.com/subscriptions — use your account email and password."
+    },
+    "access": {
+      "method": "html_list",
+      "url": "https://www.telecompaper.com/news/",
+      "html_list": {
+        "article_selector": "a.card.article-preview-card",
+        "title_link_selector": "h2.is-title",
+        "description_selector": "p.is-abstract",
+        "url_contains": "/news/"
+      }
+    }
+  },
+
+  { "name": "Dark Reading", "feed_url": "https://www.darkreading.com/rss.xml", "region": "global", "category": "cybersecurity" },
+  { "name": "SecurityWeek", "feed_url": "https://feeds.feedburner.com/securityweek", "region": "global", "category": "cybersecurity" },
+
+  {
+    "name": "GreenBiz Technology",
+    "region": "global",
+    "category": "sustainability",
+    "access": {
+      "method": "api",
+      "url": "https://trellis.net/wp-json/wp/v2/posts?per_page=25&_fields=link,date_gmt,title,excerpt&categories=47",
+      "api": {
+        "title_field": "title.rendered",
+        "url_field": "link",
+        "description_field": "excerpt.rendered",
+        "time_field": "date_gmt",
+        "time_format": "2006-01-02T15:04:05"
+      }
+    }
+  },
+
+  { "name": "ITU Telecom Blog", "feed_url": "https://www.itu.int/hub/feed/", "region": "global", "category": "regulation" },
+
+  {
+    "name": "TelcoDR Blog",
+    "region": "global",
+    "category": "cloud-it",
+    "access": {
+      "method": "html_list",
+      "url": "https://telcodr.com/insights/?filter-resource-type[]=blog",
+      "html_list": {
+        "article_selector": "div.single-post-item",
+        "title_link_selector": "h6.single-post-item__title",
+        "description_selector": "p.single-post-item__excerpt",
+        "time_selector": "p.single-post-item__excerpt",
+        "url_contains": "/insights/"
+      }
+    }
+  },
+
+  { "name": "Telecom Review Asia", "feed_url": "https://www.telecomreviewasia.com/feed/", "region": "asia-pacific" },
+  { "name": "TelcoNews Asia", "feed_url": "https://telconews.asia/feed", "region": "asia-pacific" },
+  {
+    "name": "Telco Magazine",
+    "region": "global",
+    "access": {
+      "method": "html_list",
+      "url": "https://telcomagazine.com/",
+      "html_list": {
+        "article_selector": "div[class^='Card_CardInner__']",
+        "title_link_selector": "h3 a",
+        "url_contains": "/news/"
+      }
+    }
+  },
+  { "name": "Connecting Africa", "feed_url": "https://www.connectingafrica.com/rss.xml", "region": "mea" }
+]

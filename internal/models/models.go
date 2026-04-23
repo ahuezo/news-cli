@@ -1,13 +1,26 @@
 package models
 
-import "time"
+import (
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+)
 
 // Category represents a telecom business category
 type Category struct {
-	ID          int
-	Name        string
-	Slug        string
-	Description string
+	ID          int      `json:"id"`
+	Name        string   `json:"name"`
+	Slug        string   `json:"slug"`
+	Description string   `json:"description"`
+	Keywords    []string `json:"keywords,omitempty"`
+}
+
+type CategoryCatalog struct {
+	DefaultCategory string     `json:"default_category"`
+	Categories      []Category `json:"categories"`
 }
 
 // Article represents a crawled news article
@@ -24,6 +37,11 @@ type Article struct {
 	CreatedAt   time.Time
 }
 
+type CategoryCount struct {
+	Category string
+	Count    int
+}
+
 // ListOptions defines filtering and sorting for article queries
 type ListOptions struct {
 	Category  string
@@ -38,52 +56,130 @@ type ListOptions struct {
 	Offset    int
 }
 
-// TelecomCategories defines the 11 main telecom business categories
-var TelecomCategories = []Category{
-	{
-		ID: 1, Slug: "network-infrastructure", Name: "Network Infrastructure & Connectivity",
-		Description: "5G, fibre, FWA, LEO satellites, RAN, spectrum",
-	},
-	{
-		ID: 2, Slug: "ai-automation", Name: "AI & Automation",
-		Description: "GenAI, network AI, automation, RAN intelligence",
-	},
-	{
-		ID: 3, Slug: "cloud-it", Name: "Cloud & IT Modernization",
-		Description: "BSS, OSS, cloud-native, network softwarization",
-	},
-	{
-		ID: 4, Slug: "cybersecurity", Name: "Cybersecurity",
-		Description: "Network security, managed security, compliance, breaches",
-	},
-	{
-		ID: 5, Slug: "b2b-enterprise", Name: "B2B & Enterprise Services",
-		Description: "Managed services, SD-WAN, TechCo, enterprise deals",
-	},
-	{
-		ID: 6, Slug: "apis-monetization", Name: "APIs & Network Monetization",
-		Description: "Open Gateway, 5G APIs, network-as-a-service",
-	},
-	{
-		ID: 7, Slug: "iot", Name: "Internet of Things",
-		Description: "IoT platforms, connected devices, AEP, industrial IoT",
-	},
-	{
-		ID: 8, Slug: "business-models", Name: "Revenue & Business Model Transformation",
-		Description: "ARPU, M&A, partnerships, vertical solutions, edge compute",
-	},
-	{
-		ID: 9, Slug: "sustainability", Name: "Sustainability & ESG",
-		Description: "Energy efficiency, carbon footprint, green networks",
-	},
-	{
-		ID: 10, Slug: "regulation", Name: "Regulation & Spectrum Policy",
-		Description: "FCC, OFCOM, GDPR, AI Act, spectrum auctions, net neutrality",
-	},
-	{
-		ID: 11, Slug: "customer-experience", Name: "Customer Experience",
-		Description: "CX, personalization, churn, NPS, digital channels",
-	},
+//go:embed categories.json
+var defaultCategoriesJSON []byte
+
+var TelecomCategories []Category
+var defaultCategorySlug string
+
+func init() {
+	catalog, err := parseCategoryCatalog(defaultCategoriesJSON)
+	if err != nil {
+		panic(fmt.Sprintf("load categories config: %v", err))
+	}
+	UseCategoryCatalog(catalog)
+}
+
+func parseCategoryCatalog(data []byte) (*CategoryCatalog, error) {
+	var catalog CategoryCatalog
+	if err := json.Unmarshal(data, &catalog); err != nil {
+		return nil, err
+	}
+	return &catalog, nil
+}
+
+func LoadEmbeddedCategoryCatalog() (*CategoryCatalog, error) {
+	return parseCategoryCatalog(defaultCategoriesJSON)
+}
+
+func LoadCategoryCatalogFromFile(path string) (*CategoryCatalog, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return parseCategoryCatalog(data)
+}
+
+func UseCategoryCatalog(catalog *CategoryCatalog) {
+	if catalog == nil {
+		TelecomCategories = nil
+		defaultCategorySlug = ""
+		return
+	}
+	TelecomCategories = append([]Category(nil), catalog.Categories...)
+	defaultCategorySlug = catalog.DefaultCategory
+}
+
+func DefaultCategorySlug() string {
+	return defaultCategorySlug
+}
+
+func ValidateCategoryCatalog(catalog *CategoryCatalog) []string {
+	if catalog == nil {
+		return []string{"category catalog is missing"}
+	}
+	var warnings []string
+	seenIDs := map[int]string{}
+	seenSlugs := map[string]string{}
+	for _, cat := range catalog.Categories {
+		if cat.ID == 0 {
+			warnings = append(warnings, fmt.Sprintf("category %q is missing id", cat.Slug))
+		} else if prev, ok := seenIDs[cat.ID]; ok {
+			warnings = append(warnings, fmt.Sprintf("duplicate category id %d (%q conflicts with %q)", cat.ID, cat.Slug, prev))
+		} else {
+			seenIDs[cat.ID] = cat.Slug
+		}
+
+		slug := strings.TrimSpace(cat.Slug)
+		if slug == "" {
+			warnings = append(warnings, fmt.Sprintf("category id %d is missing slug", cat.ID))
+		} else if prev, ok := seenSlugs[strings.ToLower(slug)]; ok {
+			warnings = append(warnings, fmt.Sprintf("duplicate category slug %q (conflicts with %q)", cat.Slug, prev))
+		} else {
+			seenSlugs[strings.ToLower(slug)] = cat.Slug
+		}
+
+		if strings.TrimSpace(cat.Name) == "" {
+			warnings = append(warnings, fmt.Sprintf("category %q is missing name", cat.Slug))
+		}
+	}
+
+	if strings.TrimSpace(catalog.DefaultCategory) == "" {
+		warnings = append(warnings, "category catalog is missing default_category")
+	} else if _, ok := seenSlugs[strings.ToLower(strings.TrimSpace(catalog.DefaultCategory))]; !ok {
+		warnings = append(warnings, fmt.Sprintf("default_category %q does not match any configured category slug", catalog.DefaultCategory))
+	}
+
+	return warnings
+}
+
+func ValidateActiveCategories() []string {
+	return ValidateCategoryCatalog(&CategoryCatalog{
+		DefaultCategory: defaultCategorySlug,
+		Categories:      TelecomCategories,
+	})
+}
+
+func HasCategorySlug(slug string) bool {
+	needle := strings.ToLower(strings.TrimSpace(slug))
+	for _, cat := range TelecomCategories {
+		if strings.ToLower(cat.Slug) == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func DetectCategory(text string) string {
+	text = strings.ToLower(text)
+	bestCat := defaultCategorySlug
+	bestScore := 0
+	for _, cat := range TelecomCategories {
+		score := 0
+		for _, kw := range cat.Keywords {
+			if strings.Contains(text, strings.ToLower(kw)) {
+				score++
+			}
+		}
+		if score > bestScore {
+			bestScore = score
+			bestCat = cat.Slug
+		}
+	}
+	if bestCat == "" {
+		bestCat = "business-models"
+	}
+	return bestCat
 }
 
 // RegionKeywords maps regions to geo keywords used in classification

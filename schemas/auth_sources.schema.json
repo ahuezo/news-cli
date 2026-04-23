@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telecom-news-cli.local/schemas/auth_sources.schema.json",
+  "title": "Telecom News Auth Sources Catalog",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["source_name", "auth_type", "notes"],
+    "properties": {
+      "source_name": { "type": "string", "minLength": 1 },
+      "auth_type": { "type": "string", "enum": ["basic", "cookie", "header", "bearer"] },
+      "header_name": { "type": "string", "minLength": 1 },
+      "notes": { "type": "string", "minLength": 1 }
+    },
+    "additionalProperties": false
+  }
+}

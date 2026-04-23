@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://telecom-news-cli.local/schemas/sources.schema.json",
+  "title": "Telecom News Sources Catalog",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "region"],
+    "properties": {
+      "name": { "type": "string", "minLength": 1 },
+      "feed_url": { "type": "string", "format": "uri" },
+      "region": {
+        "type": "string",
+        "enum": ["global", "north-america", "europe", "asia-pacific", "latam", "mea"]
+      },
+      "category": { "type": "string", "minLength": 1 },
+      "requires_auth": { "type": "boolean" },
+      "auth": {
+        "type": "object",
+        "required": ["auth_type", "notes"],
+        "properties": {
+          "auth_type": { "type": "string", "enum": ["basic", "cookie", "header", "bearer"] },
+          "header_name": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      },
+      "access": {
+        "type": "object",
+        "required": ["method", "url"],
+        "properties": {
+          "method": { "type": "string", "enum": ["rss", "html_list", "api"] },
+          "url": { "type": "string", "format": "uri" },
+          "html_list": {
+            "type": "object",
+            "required": ["article_selector", "title_link_selector"],
+            "properties": {
+              "article_selector": { "type": "string", "minLength": 1 },
+              "title_link_selector": { "type": "string", "minLength": 1 },
+              "time_selector": { "type": "string" },
+              "time_attr": { "type": "string" },
+              "url_contains": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          "api": {
+            "type": "object",
+            "required": ["title_field", "url_field"],
+            "properties": {
+              "items_path": { "type": "string" },
+              "title_field": { "type": "string", "minLength": 1 },
+              "url_field": { "type": "string", "minLength": 1 },
+              "description_field": { "type": "string" },
+              "time_field": { "type": "string" },
+              "time_format": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": { "properties": { "method": { "const": "html_list" } } },
+            "then": { "required": ["html_list"] }
+          },
+          {
+            "if": { "properties": { "method": { "const": "api" } } },
+            "then": { "required": ["api"] }
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "allOf": [
+      {
+        "if": { "required": ["access"] },
+        "then": { "not": { "required": ["feed_url"] } }
+      },
+      {
+        "if": { "not": { "required": ["access"] } },
+        "then": { "required": ["feed_url"] }
+      }
+    ]
+  }
+}

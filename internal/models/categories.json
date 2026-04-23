@@ -1,0 +1,82 @@
+{
+  "default_category": "business-models",
+  "categories": [
+    {
+      "id": 1,
+      "slug": "network-infrastructure",
+      "name": "Network Infrastructure & Connectivity",
+      "description": "5G, fibre, FWA, LEO satellites, RAN, spectrum",
+      "keywords": ["5g", "fibre", "fiber", "fwa", "ran", "spectrum", "antenna", "tower", "satellite", "leo", "bandwidth", "latency", "4g", "lte", "network build", "rollout", "coverage"]
+    },
+    {
+      "id": 2,
+      "slug": "ai-automation",
+      "name": "AI & Automation",
+      "description": "GenAI, network AI, automation, RAN intelligence",
+      "keywords": ["artificial intelligence", " ai ", "machine learning", "automation", "llm", "generative", "genai", "chatbot", "neural", "predictive maintenance", "agentic"]
+    },
+    {
+      "id": 3,
+      "slug": "cloud-it",
+      "name": "Cloud & IT Modernization",
+      "description": "BSS, OSS, cloud-native, network softwarization",
+      "keywords": ["cloud", "bss", "oss", "devops", "microservices", "kubernetes", "saas", "paas", "it modernization", "digital transformation", "software-defined", "nfv", "vnf"]
+    },
+    {
+      "id": 4,
+      "slug": "cybersecurity",
+      "name": "Cybersecurity",
+      "description": "Network security, managed security, compliance, breaches",
+      "keywords": ["security", "breach", "hack", "ransomware", "cyber", "threat", "vulnerab", "firewall", "zero trust", "gdpr", "compliance", "data protection", "fraud"]
+    },
+    {
+      "id": 5,
+      "slug": "b2b-enterprise",
+      "name": "B2B & Enterprise Services",
+      "description": "Managed services, SD-WAN, TechCo, enterprise deals",
+      "keywords": ["enterprise", "b2b", "managed service", "sd-wan", "mpls", "techco", "wholesale", "corporate", "sme", "business customer"]
+    },
+    {
+      "id": 6,
+      "slug": "apis-monetization",
+      "name": "APIs & Network Monetization",
+      "description": "Open Gateway, 5G APIs, network-as-a-service",
+      "keywords": ["api", "open gateway", "monetiz", "camara", "network-as-a-service", "naas", "platform", "developer"]
+    },
+    {
+      "id": 7,
+      "slug": "iot",
+      "name": "Internet of Things",
+      "description": "IoT platforms, connected devices, AEP, industrial IoT",
+      "keywords": ["iot", "internet of things", "connected device", "smart city", "m2m", "industrial", "aep", "sensor", "telematics"]
+    },
+    {
+      "id": 8,
+      "slug": "business-models",
+      "name": "Revenue & Business Model Transformation",
+      "description": "ARPU, M&A, partnerships, vertical solutions, edge compute",
+      "keywords": ["revenue", "arpu", "merger", "acquisition", "m&a", "partnership", "strategy", "profit", "investor", "earnings", "market share", "growth", "edge computing"]
+    },
+    {
+      "id": 9,
+      "slug": "sustainability",
+      "name": "Sustainability & ESG",
+      "description": "Energy efficiency, carbon footprint, green networks",
+      "keywords": ["sustainability", "esg", "carbon", "green", "renewable", "energy efficiency", "environment", "net zero", "emission"]
+    },
+    {
+      "id": 10,
+      "slug": "regulation",
+      "name": "Regulation & Spectrum Policy",
+      "description": "FCC, OFCOM, GDPR, AI Act, spectrum auctions, net neutrality",
+      "keywords": ["regulation", "fcc", "ofcom", "spectrum auction", "policy", "legislation", "antitrust", "net neutrality", "compliance", "law", "eu act", "fine", "penalty"]
+    },
+    {
+      "id": 11,
+      "slug": "customer-experience",
+      "name": "Customer Experience",
+      "description": "CX, personalization, churn, NPS, digital channels",
+      "keywords": ["customer experience", "cx ", "nps", "churn", "satisfaction", "loyalty", "digital channel", "self-service", "personali"]
+    }
+  ]
+}

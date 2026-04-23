@@ -71,6 +71,26 @@ func (d *DB) UpsertArticle(a *models.Article) error {
 
 // List retrieves articles with flexible filtering and sorting
 func (d *DB) List(opts models.ListOptions) ([]models.Article, error) {
+	query, args := d.listQuery(opts)
+
+	limit := 50
+	if opts.Limit > 0 {
+		limit = opts.Limit
+	}
+
+	query += "\n\t\tLIMIT ? OFFSET ?"
+	args = append(args, limit, opts.Offset)
+
+	return d.scan(query, args...)
+}
+
+// ListAll retrieves all matching articles without pagination.
+func (d *DB) ListAll(opts models.ListOptions) ([]models.Article, error) {
+	query, args := d.listQuery(opts)
+	return d.scan(query, args...)
+}
+
+func (d *DB) listQuery(opts models.ListOptions) (string, []interface{}) {
 	where := []string{"1=1"}
 	args := []interface{}{}
 
@@ -109,22 +129,14 @@ func (d *DB) List(opts models.ListOptions) ([]models.Article, error) {
 		sortOrder = "ASC"
 	}
 
-	limit := 50
-	if opts.Limit > 0 {
-		limit = opts.Limit
-	}
-
 	query := fmt.Sprintf(`
 		SELECT id, url, title, abstract, published_at, category, region, country, source, created_at
 		FROM articles
 		WHERE %s
-		ORDER BY %s %s
-		LIMIT ? OFFSET ?`,
+		ORDER BY %s %s`,
 		strings.Join(where, " AND "), sortCol, sortOrder,
 	)
-	args = append(args, limit, opts.Offset)
-
-	return d.scan(query, args...)
+	return query, args
 }
 
 // Search performs a multi-term LIKE search across title, abstract, category, and source.
@@ -193,6 +205,30 @@ func (d *DB) Stats() (map[string]int, map[string]int, error) {
 	}
 
 	return byCat, byRegion, nil
+}
+
+// DistinctCategories returns the categories present in stored articles with counts.
+func (d *DB) DistinctCategories() ([]models.CategoryCount, error) {
+	rows, err := d.conn.Query(`
+		SELECT category, COUNT(*)
+		FROM articles
+		GROUP BY category
+		ORDER BY category ASC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []models.CategoryCount
+	for rows.Next() {
+		var item models.CategoryCount
+		if err := rows.Scan(&item.Category, &item.Count); err != nil {
+			return nil, err
+		}
+		categories = append(categories, item)
+	}
+
+	return categories, rows.Err()
 }
 
 // Count returns total number of stored articles
