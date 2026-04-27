@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Telecom News Dashboard</title>
+    <style>
+      :root {
+        --ink: #17201a;
+        --muted: #67716b;
+        --paper: #fbf8ed;
+        --panel: rgba(255, 252, 242, 0.86);
+        --line: rgba(23, 32, 26, 0.13);
+        --accent: #d95f2a;
+        --accent-dark: #963f1e;
+        --green: #2f6f4e;
+        --blue: #315f7d;
+        --shadow: 0 22px 70px rgba(43, 55, 45, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font:
+          15px/1.5 Georgia,
+          "Iowan Old Style",
+          "Palatino Linotype",
+          serif;
+        background: radial-gradient(
+            circle at 18% 10%,
+            rgba(217, 95, 42, 0.24),
+            transparent 28rem
+          ),
+          radial-gradient(
+            circle at 86% 18%,
+            rgba(49, 95, 125, 0.18),
+            transparent 24rem
+          ),
+          linear-gradient(135deg, #fbf8ed 0%, #f1ead8 48%, #dfe8dd 100%);
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--accent-dark);
+      }
+
+      .shell {
+        width: min(1480px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 56px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+        gap: 22px;
+        align-items: stretch;
+        margin-bottom: 22px;
+      }
+
+      .masthead,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+      }
+
+      .masthead {
+        padding: clamp(26px, 5vw, 54px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .masthead::after {
+        content: "";
+        position: absolute;
+        inset: auto -70px -120px auto;
+        width: 310px;
+        height: 310px;
+        border-radius: 50%;
+        border: 42px solid rgba(47, 111, 78, 0.13);
+      }
+
+      .eyebrow {
+        color: var(--green);
+        font:
+          700 0.78rem/1.1 "Trebuchet MS",
+          sans-serif;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 14px 0 10px;
+        max-width: 840px;
+        font-size: clamp(2.35rem, 7vw, 6.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.07em;
+      }
+
+      .lede {
+        max-width: 780px;
+        color: var(--muted);
+        font-size: clamp(1.04rem, 2vw, 1.28rem);
+      }
+
+      .status-card {
+        padding: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .status-grid,
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.43);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.8rem;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .metric span,
+      label,
+      .small {
+        color: var(--muted);
+        font:
+          700 0.74rem/1.2 "Trebuchet MS",
+          sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 380px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+      }
+
+      .panel {
+        padding: 22px;
+      }
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+      .wide-stack {
+        display: grid;
+        gap: 22px;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 1.5rem;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin: 18px 0 10px;
+        font-size: 1.05rem;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .form-grid .full {
+        grid-column: 1 / -1;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        font:
+          600 0.94rem/1.25 "Trebuchet MS",
+          sans-serif;
+      }
+
+      input,
+      select,
+      textarea {
+        background: rgba(255, 255, 255, 0.72);
+        padding: 11px 12px;
+        margin-top: 6px;
+      }
+
+      input[type="checkbox"] {
+        width: auto;
+        margin: 0 8px 0 0;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding-top: 18px;
+      }
+
+      textarea {
+        min-height: 82px;
+        resize: vertical;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 12px 14px;
+        background: var(--ink);
+        color: #fffaf0;
+        border-color: var(--ink);
+        transition:
+          transform 160ms ease,
+          background 160ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        background: var(--accent-dark);
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+      }
+      button.warn {
+        background: #8f2d24;
+        border-color: #8f2d24;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.68;
+        transform: none;
+      }
+
+      button.row-action {
+        width: auto;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .button-row button,
+      .button-row a {
+        width: auto;
+      }
+
+      .notice {
+        border-left: 5px solid var(--accent);
+        padding: 12px 14px;
+        background: rgba(217, 95, 42, 0.11);
+        border-radius: 14px;
+        color: var(--accent-dark);
+        font-family: "Trebuchet MS", sans-serif;
+        white-space: pre-wrap;
+      }
+
+      .fetch-wait {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .spinner {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: 3px solid rgba(217, 95, 42, 0.28);
+        border-top-color: var(--accent);
+        animation: spin 850ms linear infinite;
+        flex: 0 0 auto;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .article-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .article {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.55);
+      }
+
+      .article-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .article-title {
+        min-width: 0;
+      }
+
+      .article h3 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+        letter-spacing: -0.03em;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 10px;
+      }
+
+      .tag {
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(49, 95, 125, 0.11);
+        color: var(--blue);
+        font:
+          700 0.72rem/1 "Trebuchet MS",
+          sans-serif;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+        background: rgba(255, 255, 255, 0.48);
+      }
+
+      th,
+      td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font:
+          700 0.74rem/1.2 "Trebuchet MS",
+          sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      pre {
+        max-height: 340px;
+        overflow: auto;
+        padding: 14px;
+        border-radius: 16px;
+        background: #17201a;
+        color: #f6eedc;
+        font-size: 0.86rem;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .shell {
+          width: min(100% - 20px, 1480px);
+          padding-top: 10px;
+        }
+        .article-head {
+          display: block;
+        }
+        .article-head .row-action {
+          margin-top: 10px;
+        }
+        .form-grid,
+        .status-grid,
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+        .masthead,
+        .panel,
+        .status-card {
+          border-radius: 20px;
+          padding: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="masthead">
+          <div class="eyebrow">Telecom News CLI</div>
+          <h1>News room</h1>
+          <p class="lede">
+            Browse stored articles, crawl sources, inspect catalogs, export CSV,
+            and manage source credentials.
+          </p>
+        </div>
+        <aside class="panel status-card">
+          <div>
+            <span class="small">API</span>
+            <h2 id="apiStatus">Checking...</h2>
+          </div>
+          <div class="status-grid">
+            <div class="metric">
+              <strong id="healthArticles">0</strong><span>Articles</span>
+            </div>
+            <div class="metric">
+              <strong id="healthSources">0</strong><span>Sources</span>
+            </div>
+            <div class="metric">
+              <strong id="healthCategories">0</strong><span>Categories</span>
+            </div>
+            <div class="metric">
+              <strong id="healthCreds">0</strong><span>Credentials</span>
+            </div>
+          </div>
+          <button id="refreshAll">Refresh Dashboard</button>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <aside class="stack">
+          <section class="panel">
+            <h2>Fetch News</h2>
+            <label
+              >Source
+              <select id="fetchSource">
+                <option value="">All sources</option>
+              </select>
+            </label>
+            <div class="button-row" style="margin-top: 12px">
+              <button id="fetchButton">Run Fetch</button>
+            </div>
+            <div
+              id="fetchOutput"
+              class="notice hidden"
+              style="margin-top: 12px"
+            ></div>
+          </section>
+
+          <section class="panel">
+            <h2>Filters</h2>
+            <div class="form-grid">
+              <label class="full"
+                >Keyword Search
+                <input id="searchQuery" placeholder="fiber spectrum cloud" />
+              </label>
+              <label
+                >Category
+                <select id="filterCategory">
+                  <option value="">Any category</option>
+                </select>
+              </label>
+              <label
+                >Region
+                <select id="filterRegion">
+                  <option value="">Any region</option>
+                  <option>global</option>
+                  <option>north-america</option>
+                  <option>europe</option>
+                  <option>asia-pacific</option>
+                  <option>latam</option>
+                  <option>mea</option>
+                </select>
+              </label>
+              <label
+                >Country
+                <input id="filterCountry" placeholder="MX" />
+              </label>
+              <label
+                >From
+                <input id="filterFrom" type="date" />
+              </label>
+              <label
+                >To
+                <input id="filterTo" type="date" />
+              </label>
+            </div>
+            <div class="button-row" style="margin-top: 14px">
+              <button id="applyFilters">Apply</button>
+              <button class="secondary" id="clearFilters">Clear</button>
+              <a id="csvExport" href="/api/v1/export/csv">Export CSV</a>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Add Source</h2>
+            <div class="form-grid">
+              <label class="full"
+                >Name
+                <input id="sourceName" placeholder="Example Telecom Feed" />
+              </label>
+              <label class="full"
+                >Feed or Endpoint URL
+                <input id="sourceURL" placeholder="https://example.com/feed.xml" />
+              </label>
+              <label
+                >Region
+                <select id="sourceRegion">
+                  <option value="global">global</option>
+                  <option value="north-america">north-america</option>
+                  <option value="europe">europe</option>
+                  <option value="asia-pacific">asia-pacific</option>
+                  <option value="latam">latam</option>
+                  <option value="mea">mea</option>
+                </select>
+              </label>
+              <label
+                >Method
+                <select id="sourceMethod">
+                  <option value="rss">RSS</option>
+                  <option value="html_list">HTML list</option>
+                  <option value="api">API</option>
+                </select>
+              </label>
+              <label class="full"
+                >Category Override
+                <select id="sourceCategory">
+                  <option value="">Auto-detect</option>
+                </select>
+              </label>
+              <label class="checkbox-row full">
+                <input id="sourceRequiresAuth" type="checkbox" />
+                Requires authentication
+              </label>
+            </div>
+            <div class="button-row" style="margin-top: 14px">
+              <button id="saveSource">Save Source</button>
+            </div>
+            <div
+              id="sourceOutput"
+              class="notice hidden"
+              style="margin-top: 12px"
+            ></div>
+          </section>
+
+          <section class="panel">
+            <h2>Add Category</h2>
+            <div class="form-grid">
+              <label
+                >Name
+                <input id="categoryName" placeholder="Satellite Services" />
+              </label>
+              <label
+                >Slug
+                <input id="categorySlug" placeholder="satellite-services" />
+              </label>
+              <label class="full"
+                >Description
+                <textarea id="categoryDescription"></textarea>
+              </label>
+              <label class="full"
+                >Keywords
+                <textarea
+                  id="categoryKeywords"
+                  placeholder="satellite, leo, ground station"
+                ></textarea>
+              </label>
+            </div>
+            <div class="button-row" style="margin-top: 14px">
+              <button id="saveCategory">Save Category</button>
+            </div>
+            <div
+              id="categoryOutput"
+              class="notice hidden"
+              style="margin-top: 12px"
+            ></div>
+          </section>
+
+          <section class="panel">
+            <h2>Credentials</h2>
+            <div class="form-grid">
+              <label class="full"
+                >Source
+                <select id="credSource"></select>
+              </label>
+              <label
+                >Auth Type
+                <select id="credAuthType">
+                  <option value="cookie">Cookie</option>
+                  <option value="basic">Basic</option>
+                  <option value="bearer">Bearer token</option>
+                  <option value="header">Custom header</option>
+                </select>
+              </label>
+              <label
+                >Header Name
+                <input id="credHeaderName" placeholder="X-API-Key" />
+              </label>
+              <label
+                >Username
+                <input id="credUsername" autocomplete="username" />
+              </label>
+              <label
+                >Password
+                <input
+                  id="credPassword"
+                  type="password"
+                  autocomplete="current-password"
+                />
+              </label>
+              <label class="full"
+                >Token
+                <input id="credToken" autocomplete="off" />
+              </label>
+              <label class="full"
+                >Raw Cookie Header
+                <textarea
+                  id="credRawCookie"
+                  placeholder="name=value; other=value"
+                ></textarea>
+              </label>
+              <label class="full"
+                >Notes
+                <textarea id="credNotes"></textarea>
+              </label>
+            </div>
+            <div class="button-row" style="margin-top: 14px">
+              <button id="saveCredential">Save Credential</button>
+              <button class="warn" id="deleteCredential">Delete</button>
+            </div>
+            <div
+              id="credentialOutput"
+              class="notice hidden"
+              style="margin-top: 12px"
+            ></div>
+          </section>
+        </aside>
+
+        <section class="wide-stack">
+          <section class="panel">
+            <div class="button-row" style="justify-content: space-between">
+              <h2>Articles</h2>
+              <div class="button-row">
+                <span class="small" id="articleCount">0 results</span>
+                <label
+                  >Items Per Page
+                  <select id="itemsPerPage">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div id="articles" class="article-list"></div>
+            <div class="button-row" style="justify-content: space-between; margin-top: 16px">
+              <button class="secondary" id="prevPage">Previous Page</button>
+              <span class="small" id="pageStatus">Page 1</span>
+              <button class="secondary" id="nextPage">Next Page</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Stats</h2>
+            <div class="metric-grid" id="statsGrid"></div>
+          </section>
+
+          <section class="panel">
+            <h2>Sources</h2>
+            <div class="table-wrap"><table id="sourcesTable"></table></div>
+          </section>
+
+          <section class="panel">
+            <h2>Categories</h2>
+            <div class="table-wrap"><table id="categoriesTable"></table></div>
+          </section>
+
+          <section class="panel">
+            <h2>Configured Credentials</h2>
+            <div class="table-wrap"><table id="credentialsTable"></table></div>
+            <h3>Credential Guidance</h3>
+            <div class="table-wrap">
+              <table id="credentialInfoTable"></table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const api = "/api/v1";
+      const state = {
+        sources: [],
+        categories: [],
+        credentials: [],
+        articlePage: 1,
+        articlePageSize: 25,
+        articleHasNextPage: false,
+        articleSearchMode: false,
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function articleValue(article, key) {
+        const aliases = {
+          id: ["ID"],
+          url: ["URL"],
+          publishedAt: ["PublishedAt"],
+          createdAt: ["CreatedAt"],
+        };
+        for (const candidate of [
+          key,
+          key.charAt(0).toUpperCase() + key.slice(1),
+          ...(aliases[key] || []),
+        ]) {
+          if (article[candidate] !== undefined && article[candidate] !== null)
+            return article[candidate];
+        }
+        return "";
+      }
+
+      function showNotice(id, message) {
+        const el = $(id);
+        el.textContent = message;
+        el.classList.toggle("hidden", !message);
+      }
+
+      function showFetchWaiting(message) {
+        const el = $("fetchOutput");
+        el.innerHTML = `<span class="spinner" aria-hidden="true"></span><span>${escapeHTML(message)}</span>`;
+        el.classList.add("fetch-wait");
+        el.classList.remove("hidden");
+      }
+
+      function clearFetchWaiting() {
+        $("fetchOutput").classList.remove("fetch-wait");
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(api + path, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {}),
+          },
+          ...options,
+        });
+        if (!response.ok) {
+          let message = response.statusText;
+          try {
+            const body = await response.json();
+            message = body.error || message;
+          } catch (_) {}
+          throw new Error(message);
+        }
+        if (response.status === 204) return null;
+        return response.json();
+      }
+
+      function paramsFromFilters() {
+        const params = new URLSearchParams();
+        const map = {
+          category: "filterCategory",
+          region: "filterRegion",
+          country: "filterCountry",
+          from: "filterFrom",
+          to: "filterTo",
+        };
+        Object.entries(map).forEach(([key, id]) => {
+          const value = $(id).value.trim();
+          if (value) params.set(key, value);
+        });
+        params.set("sort_by", "date");
+        params.set("order", "desc");
+        return params;
+      }
+
+      function pageSize() {
+        const parsed = Number.parseInt($("itemsPerPage").value, 10);
+        return [5, 10, 25, 50].includes(parsed) ? parsed : 25;
+      }
+
+      async function loadHealth() {
+        const health = await request("/health");
+        $("apiStatus").textContent =
+          health.status === "ok" ? "Online" : "Unknown";
+        $("healthArticles").textContent = health.articles ?? 0;
+        $("healthSources").textContent = health.sources ?? 0;
+        $("healthCategories").textContent = health.categories ?? 0;
+        $("healthCreds").textContent = health.credentials ?? 0;
+      }
+
+      async function loadSources() {
+        const data = await request("/sources");
+        state.sources = data.sources || [];
+        const sourceOptions = ['<option value="">All sources</option>']
+          .concat(
+            state.sources.map((s) => `<option>${escapeHTML(s.name)}</option>`),
+          )
+          .join("");
+        $("fetchSource").innerHTML = sourceOptions;
+        $("credSource").innerHTML = state.sources
+          .map((s) => `<option>${escapeHTML(s.name)}</option>`)
+          .join("");
+        $("sourcesTable").innerHTML = sourceTable(state.sources);
+      }
+
+      async function loadCategories() {
+        const data = await request("/categories");
+        const categories = data.categories || [];
+        state.categories = categories;
+        $("filterCategory").innerHTML =
+          '<option value="">Any category</option>' +
+          categories
+            .map(
+              (c) =>
+                `<option value="${escapeHTML(c.slug)}">${escapeHTML(c.name)}</option>`,
+            )
+            .join("");
+        $("sourceCategory").innerHTML =
+          '<option value="">Auto-detect</option>' +
+          categories
+            .map(
+              (c) =>
+                `<option value="${escapeHTML(c.slug)}">${escapeHTML(c.name)}</option>`,
+            )
+            .join("");
+        $("categoriesTable").innerHTML = categoryTable(categories);
+      }
+
+      async function loadStats() {
+        const data = await request("/stats");
+        const categoryStats = Object.entries(data.by_category || {})
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6);
+        const regionStats = Object.entries(data.by_region || {})
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6);
+        $("statsGrid").innerHTML = [
+          metric("Total Articles", data.total || 0),
+          ...categoryStats.map(([name, count]) =>
+            metric("Category: " + name, count),
+          ),
+          ...regionStats.map(([name, count]) =>
+            metric("Region: " + name, count),
+          ),
+        ].join("");
+      }
+
+      async function loadArticles() {
+        const query = $("searchQuery").value.trim();
+        state.articlePageSize = pageSize();
+        $("itemsPerPage").value = String(state.articlePageSize);
+        const params = paramsFromFilters();
+        params.set("limit", state.articlePageSize + 1);
+        params.set("offset", (state.articlePage - 1) * state.articlePageSize);
+        const path = query
+          ? `/articles/search?q=${encodeURIComponent(query)}&limit=${encodeURIComponent(state.articlePageSize)}`
+          : `/articles?${params}`;
+        const data = await request(path);
+        state.articleSearchMode = Boolean(query);
+        const articles = data.articles || [];
+        state.articleHasNextPage =
+          !state.articleSearchMode && articles.length > state.articlePageSize;
+        renderArticles(articles.slice(0, state.articlePageSize));
+        renderPagination();
+        updateExportLink();
+      }
+
+      async function loadCredentials() {
+        const [configured, info] = await Promise.all([
+          request("/credentials"),
+          request("/credentials/info"),
+        ]);
+        state.credentials = configured.credentials || [];
+        $("credentialsTable").innerHTML = credentialTable(state.credentials);
+        $("credentialInfoTable").innerHTML = table(
+          ["Source", "Type", "Notes"],
+          (info.credentials || []).map((c) => [
+            c.source_name,
+            c.auth_type,
+            c.notes || "",
+          ]),
+        );
+      }
+
+      function renderArticles(articles) {
+        $("articleCount").textContent =
+          `${articles.length} result${articles.length === 1 ? "" : "s"}`;
+        $("articles").innerHTML =
+          articles
+            .map((article) => {
+              const id = articleValue(article, "id");
+              const url = articleValue(article, "url");
+              const title = articleValue(article, "title") || "(untitled)";
+              const published = formatDate(
+                articleValue(article, "publishedAt"),
+              );
+              const abstract = articleValue(article, "abstract");
+              return `<article class="article">
+          <div class="article-head">
+            <div class="article-title">
+              <h3><a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(title)}</a></h3>
+              <div class="small">${escapeHTML(articleValue(article, "source"))} ${published ? " / " + escapeHTML(published) : ""}</div>
+            </div>
+            ${id ? `<button class="warn row-action" data-delete-article="${escapeHTML(id)}">Delete Article</button>` : ""}
+          </div>
+          ${abstract ? `<p>${escapeHTML(abstract)}</p>` : ""}
+          <div class="tags">
+            ${tag(articleValue(article, "category"))}
+            ${tag(articleValue(article, "region"))}
+            ${tag(articleValue(article, "country"))}
+          </div>
+        </article>`;
+            })
+            .join("") ||
+              '<p class="notice">No articles match the current filters.</p>';
+      }
+
+      function renderPagination() {
+        $("pageStatus").textContent = state.articleSearchMode
+          ? "Search results"
+          : `Page ${state.articlePage}`;
+        $("prevPage").disabled = state.articleSearchMode || state.articlePage <= 1;
+        $("nextPage").disabled =
+          state.articleSearchMode || !state.articleHasNextPage;
+      }
+
+      function updateExportLink() {
+        const params = paramsFromFilters();
+        params.delete("offset");
+        params.delete("limit");
+        $("csvExport").href = `/api/v1/export/csv?${params}`;
+      }
+
+      async function runFetch() {
+        showFetchWaiting("Fetching. This can take a while for all sources...");
+        $("fetchButton").disabled = true;
+        try {
+          const source = $("fetchSource").value;
+          const body = source
+            ? { source_name: source, verbose: false }
+            : { verbose: false };
+          const data = await request("/fetch", {
+            method: "POST",
+            body: JSON.stringify(body),
+          });
+          const failures = (data.results || []).filter((r) => r.error);
+          showNotice(
+            "fetchOutput",
+            `Saved ${data.saved || 0} new articles. ${failures.length} source(s) reported errors.`,
+          );
+          await Promise.all([
+            loadHealth(),
+            loadStats(),
+            loadArticles(),
+            loadSources(),
+          ]);
+        } catch (err) {
+          showNotice("fetchOutput", err.message);
+        } finally {
+          clearFetchWaiting();
+          $("fetchButton").disabled = false;
+        }
+      }
+
+      async function saveCredential() {
+        const payload = {
+          source_name: $("credSource").value,
+          auth_type: $("credAuthType").value,
+          username: $("credUsername").value.trim(),
+          password: $("credPassword").value,
+          token: $("credToken").value.trim(),
+          raw_cookie: $("credRawCookie").value.trim(),
+          header_name: $("credHeaderName").value.trim(),
+          notes: $("credNotes").value.trim(),
+        };
+        Object.keys(payload).forEach((key) => {
+          if (payload[key] === "") delete payload[key];
+        });
+        try {
+          await request("/credentials", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          showNotice("credentialOutput", "Credential saved.");
+          await Promise.all([loadCredentials(), loadSources(), loadHealth()]);
+        } catch (err) {
+          showNotice("credentialOutput", err.message);
+        }
+      }
+
+      async function saveSource() {
+        const payload = {
+          name: $("sourceName").value.trim(),
+          endpoint_url: $("sourceURL").value.trim(),
+          region: $("sourceRegion").value,
+          access_method: $("sourceMethod").value,
+          category: $("sourceCategory").value,
+          requires_auth: $("sourceRequiresAuth").checked,
+        };
+        if (!payload.category) delete payload.category;
+        try {
+          const data = await request("/sources", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          showNotice(
+            "sourceOutput",
+            data.persisted
+              ? "Source saved to the configured sources file."
+              : "Source saved for this server session. Start serve with --sources <file> to persist dashboard catalog edits.",
+          );
+          ["sourceName", "sourceURL"].forEach((id) => ($(id).value = ""));
+          $("sourceRequiresAuth").checked = false;
+          await Promise.all([loadSources(), loadHealth()]);
+        } catch (err) {
+          showNotice("sourceOutput", err.message);
+        }
+      }
+
+      async function saveCategory() {
+        const payload = {
+          name: $("categoryName").value.trim(),
+          slug: $("categorySlug").value.trim(),
+          description: $("categoryDescription").value.trim(),
+          keywords: $("categoryKeywords")
+            .value.split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        };
+        try {
+          const data = await request("/categories", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          showNotice(
+            "categoryOutput",
+            data.persisted
+              ? "Category saved to the configured categories file."
+              : "Category saved for this server session. Start serve with --categories <file> to persist dashboard catalog edits.",
+          );
+          [
+            "categoryName",
+            "categorySlug",
+            "categoryDescription",
+            "categoryKeywords",
+          ].forEach((id) => ($(id).value = ""));
+          await Promise.all([loadCategories(), loadHealth()]);
+        } catch (err) {
+          showNotice("categoryOutput", err.message);
+        }
+      }
+
+      async function deleteSource(name) {
+        if (!name || !confirm(`Delete source ${name}?`)) return;
+        try {
+          await request(`/sources/${encodeURIComponent(name)}`, {
+            method: "DELETE",
+          });
+          showNotice("sourceOutput", `Deleted source ${name}.`);
+          await Promise.all([loadSources(), loadHealth()]);
+        } catch (err) {
+          showNotice("sourceOutput", err.message);
+        }
+      }
+
+      async function deleteCategory(slug) {
+        if (!slug || !confirm(`Delete category ${slug}?`)) return;
+        try {
+          await request(`/categories/${encodeURIComponent(slug)}`, {
+            method: "DELETE",
+          });
+          showNotice("categoryOutput", `Deleted category ${slug}.`);
+          await Promise.all([loadCategories(), loadHealth(), loadArticles()]);
+        } catch (err) {
+          showNotice("categoryOutput", err.message);
+        }
+      }
+
+      async function deleteArticle(id) {
+        if (!id || !confirm("Delete this article?")) return;
+        try {
+          await request(`/articles/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+          });
+          await Promise.all([loadArticles(), loadHealth(), loadStats()]);
+        } catch (err) {
+          showNotice("fetchOutput", err.message);
+        }
+      }
+
+      async function deleteCredential(source = $("credSource").value) {
+        if (!source || !confirm(`Delete credentials for ${source}?`)) return;
+        try {
+          await request(`/credentials/${encodeURIComponent(source)}`, {
+            method: "DELETE",
+          });
+          showNotice("credentialOutput", "Credential deleted.");
+          await Promise.all([loadCredentials(), loadSources(), loadHealth()]);
+        } catch (err) {
+          showNotice("credentialOutput", err.message);
+        }
+      }
+
+      async function refreshAll() {
+        try {
+          state.articlePage = 1;
+          await Promise.all([
+            loadHealth(),
+            loadSources(),
+            loadCategories(),
+            loadStats(),
+            loadCredentials(),
+          ]);
+          await loadArticles();
+        } catch (err) {
+          $("apiStatus").textContent = "Error";
+          showNotice("fetchOutput", err.message);
+        }
+      }
+
+      function table(headers, rows) {
+        return `<thead><tr>${headers.map((h) => `<th>${escapeHTML(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHTML(cell ?? "")}</td>`).join("")}</tr>`).join("")}</tbody>`;
+      }
+
+      function sourceTable(sources) {
+        return `<thead><tr><th>Name</th><th>Region</th><th>Category</th><th>Method</th><th>Auth</th><th>Action</th></tr></thead><tbody>${sources
+          .map(
+            (s) =>
+              `<tr>
+                <td><a href="${escapeHTML(s.endpoint_url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(s.name)}</a></td>
+                <td>${escapeHTML(s.region)}</td>
+                <td>${escapeHTML(s.category || "auto")}</td>
+                <td>${escapeHTML(s.access_method)}</td>
+                <td>${escapeHTML(s.auth_status)}</td>
+                <td><button class="warn row-action" data-delete-source="${escapeHTML(s.name)}">Delete</button></td>
+              </tr>`,
+          )
+          .join("")}</tbody>`;
+      }
+
+      function categoryTable(categories) {
+        return `<thead><tr><th>Slug</th><th>Name</th><th>Description</th><th>Action</th></tr></thead><tbody>${categories
+          .map(
+            (c) =>
+              `<tr>
+                <td>${escapeHTML(c.slug)}</td>
+                <td>${escapeHTML(c.name)}</td>
+                <td>${escapeHTML(c.description)}</td>
+                <td><button class="warn row-action" data-delete-category="${escapeHTML(c.slug)}">Delete</button></td>
+              </tr>`,
+          )
+          .join("")}</tbody>`;
+      }
+
+      function credentialTable(credentials) {
+        return `<thead><tr><th>Source</th><th>Type</th><th>Display</th><th>Cookie</th><th>Header</th><th>Action</th></tr></thead><tbody>${credentials
+          .map(
+            (c) =>
+              `<tr>
+                <td>${escapeHTML(c.source_name)}</td>
+                <td>${escapeHTML(c.auth_type)}</td>
+                <td>${escapeHTML(c.display || "")}</td>
+                <td>${escapeHTML(c.raw_cookie ? "raw cookie set" : cookieNames(c.cookies))}</td>
+                <td>${escapeHTML(c.header_name || "")}</td>
+                <td><button class="warn row-action" data-delete-credential="${escapeHTML(c.source_name)}">Delete</button></td>
+              </tr>`,
+          )
+          .join("")}</tbody>`;
+      }
+
+      function metric(label, value) {
+        return `<div class="metric"><strong>${escapeHTML(value)}</strong><span>${escapeHTML(label)}</span></div>`;
+      }
+
+      function tag(value) {
+        return value ? `<span class="tag">${escapeHTML(value)}</span>` : "";
+      }
+
+      function cookieNames(cookies) {
+        return cookies ? Object.keys(cookies).sort().join(", ") : "";
+      }
+
+      function formatDate(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+      }
+
+      function escapeHTML(value) {
+        return String(value).replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch],
+        );
+      }
+
+      $("refreshAll").addEventListener("click", refreshAll);
+      $("applyFilters").addEventListener("click", () => {
+        state.articlePage = 1;
+        loadArticles();
+      });
+      $("clearFilters").addEventListener("click", () => {
+        [
+          "searchQuery",
+          "filterCategory",
+          "filterRegion",
+          "filterCountry",
+          "filterFrom",
+          "filterTo",
+        ].forEach((id) => ($(id).value = ""));
+        $("itemsPerPage").value = "25";
+        state.articlePage = 1;
+        loadArticles();
+      });
+      $("itemsPerPage").addEventListener("change", () => {
+        state.articlePage = 1;
+        loadArticles();
+      });
+      $("prevPage").addEventListener("click", () => {
+        if (state.articlePage <= 1) return;
+        state.articlePage -= 1;
+        loadArticles();
+      });
+      $("nextPage").addEventListener("click", () => {
+        if (!state.articleHasNextPage) return;
+        state.articlePage += 1;
+        loadArticles();
+      });
+      $("fetchButton").addEventListener("click", runFetch);
+      $("saveSource").addEventListener("click", saveSource);
+      $("saveCategory").addEventListener("click", saveCategory);
+      $("saveCredential").addEventListener("click", saveCredential);
+      $("deleteCredential").addEventListener("click", deleteCredential);
+      $("sourcesTable").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-source]");
+        if (button) deleteSource(button.dataset.deleteSource);
+      });
+      $("categoriesTable").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-category]");
+        if (button) deleteCategory(button.dataset.deleteCategory);
+      });
+      $("articles").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-article]");
+        if (button) deleteArticle(button.dataset.deleteArticle);
+      });
+      $("credentialsTable").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-credential]");
+        if (button) deleteCredential(button.dataset.deleteCredential);
+      });
+      $("searchQuery").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          state.articlePage = 1;
+          loadArticles();
+        }
+      });
+
+      refreshAll();
+    </script>
+  </body>
+</html>

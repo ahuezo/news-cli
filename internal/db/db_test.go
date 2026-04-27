@@ -67,6 +67,104 @@ func TestListAllFiltersDateRange(t *testing.T) {
 	}
 }
 
+func TestListOrdersByLatestPublishedDateAndHour(t *testing.T) {
+	database, err := Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer database.Close()
+
+	articles := []models.Article{
+		{
+			URL:         "https://example.com/morning",
+			Title:       "Morning article",
+			PublishedAt: time.Date(2026, 4, 27, 9, 0, 0, 0, time.UTC),
+			Category:    "network-infrastructure",
+			Region:      "global",
+			Source:      "Example",
+		},
+		{
+			URL:         "https://example.com/afternoon",
+			Title:       "Afternoon article",
+			PublishedAt: time.Date(2026, 4, 27, 15, 30, 0, 0, time.UTC),
+			Category:    "network-infrastructure",
+			Region:      "global",
+			Source:      "Example",
+		},
+		{
+			URL:         "https://example.com/yesterday",
+			Title:       "Yesterday article",
+			PublishedAt: time.Date(2026, 4, 26, 23, 0, 0, 0, time.UTC),
+			Category:    "network-infrastructure",
+			Region:      "global",
+			Source:      "Example",
+		},
+	}
+	for _, article := range articles {
+		article := article
+		if err := database.UpsertArticle(&article); err != nil {
+			t.Fatalf("UpsertArticle() error = %v", err)
+		}
+	}
+
+	got, err := database.List(models.ListOptions{
+		SortBy:    "date",
+		SortOrder: "desc",
+		Limit:     10,
+	})
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("expected 3 articles, got %d", len(got))
+	}
+	if got[0].Title != "Afternoon article" || got[1].Title != "Morning article" || got[2].Title != "Yesterday article" {
+		t.Fatalf("articles not ordered by latest published timestamp: %+v", got)
+	}
+}
+
+func TestDeleteArticle(t *testing.T) {
+	database, err := Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	defer database.Close()
+
+	article := models.Article{
+		URL:         "https://example.com/delete-me",
+		Title:       "Delete me",
+		PublishedAt: time.Date(2026, 4, 27, 12, 0, 0, 0, time.UTC),
+		Category:    "network-infrastructure",
+		Region:      "global",
+		Source:      "Example",
+	}
+	if err := database.UpsertArticle(&article); err != nil {
+		t.Fatalf("UpsertArticle() error = %v", err)
+	}
+	articles, err := database.List(models.ListOptions{Limit: 1})
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(articles) != 1 {
+		t.Fatalf("expected inserted article, got %d", len(articles))
+	}
+
+	removed, err := database.DeleteArticle(articles[0].ID)
+	if err != nil {
+		t.Fatalf("DeleteArticle() error = %v", err)
+	}
+	if !removed {
+		t.Fatal("expected DeleteArticle() to remove article")
+	}
+	count, err := database.Count()
+	if err != nil {
+		t.Fatalf("Count() error = %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected no articles after delete, got %d", count)
+	}
+}
+
 func TestDistinctCategories(t *testing.T) {
 	database, err := Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {

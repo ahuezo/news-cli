@@ -90,6 +90,15 @@ func LoadCategoryCatalogFromFile(path string) (*CategoryCatalog, error) {
 	return parseCategoryCatalog(data)
 }
 
+func SaveCategoryCatalogToFile(path string, catalog *CategoryCatalog) error {
+	data, err := json.MarshalIndent(catalog, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(path, data, 0600)
+}
+
 func UseCategoryCatalog(catalog *CategoryCatalog) {
 	if catalog == nil {
 		TelecomCategories = nil

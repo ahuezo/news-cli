@@ -1,6 +1,8 @@
 package server
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -10,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,17 +24,33 @@ import (
 )
 
 type App struct {
-	DB      *db.DB
-	Creds   *config.CredentialStore
-	Crawler *crawler.Crawler
+	DB             *db.DB
+	Creds          *config.CredentialStore
+	Crawler        *crawler.Crawler
+	SourcesPath    string
+	CategoriesPath string
+	WebUser        string
+	WebPassword    string
+	mu             sync.Mutex
 }
 
 func New(database *db.DB, creds *config.CredentialStore) *App {
+	return NewWithCatalogPaths(database, creds, "", "")
+}
+
+func NewWithCatalogPaths(database *db.DB, creds *config.CredentialStore, sourcesPath, categoriesPath string) *App {
 	return &App{
-		DB:      database,
-		Creds:   creds,
-		Crawler: crawler.NewWithCreds(database, creds),
+		DB:             database,
+		Creds:          creds,
+		Crawler:        crawler.NewWithCreds(database, creds),
+		SourcesPath:    sourcesPath,
+		CategoriesPath: categoriesPath,
 	}
+}
+
+func (a *App) SetWebAuth(username, password string) {
+	a.WebUser = username
+	a.WebPassword = password
 }
 
 func (a *App) Router() http.Handler {
@@ -42,42 +61,82 @@ func (a *App) Router() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/healthz", a.health)
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/health", a.health)
-		r.Get("/sources", a.sources)
-		r.Get("/stats", a.stats)
-		r.Get("/categories", a.categories)
-		r.Get("/validate", a.validate)
-		r.Get("/articles", a.listArticles)
-		r.Get("/articles/search", a.searchArticles)
-		r.Get("/export/csv", a.exportCSV)
-		r.Post("/fetch", a.fetch)
-		r.Get("/credentials", a.listCredentials)
-		r.Post("/credentials", a.saveCredential)
-		r.Get("/credentials/info", a.credentialInfo)
-		r.Get("/credentials/{source}", a.getCredential)
-		r.Delete("/credentials/{source}", a.deleteCredential)
+	r.Group(func(r chi.Router) {
+		r.Use(a.basicAuth)
+		r.Get("/", a.dashboard)
+		r.Get("/dashboard", a.dashboard)
+		r.Route("/api/v1", func(r chi.Router) {
+			r.Get("/health", a.health)
+			r.Get("/sources", a.sources)
+			r.Post("/sources", a.saveSource)
+			r.Delete("/sources/{source}", a.deleteSource)
+			r.Get("/stats", a.stats)
+			r.Get("/categories", a.categories)
+			r.Post("/categories", a.saveCategory)
+			r.Delete("/categories/{slug}", a.deleteCategory)
+			r.Get("/validate", a.validate)
+			r.Get("/articles", a.listArticles)
+			r.Delete("/articles/{id}", a.deleteArticle)
+			r.Get("/articles/search", a.searchArticles)
+			r.Get("/export/csv", a.exportCSV)
+			r.Post("/fetch", a.fetch)
+			r.Get("/credentials", a.listCredentials)
+			r.Post("/credentials", a.saveCredential)
+			r.Get("/credentials/info", a.credentialInfo)
+			r.Get("/credentials/{source}", a.getCredential)
+			r.Delete("/credentials/{source}", a.deleteCredential)
+		})
 	})
 
 	return r
 }
 
+func (a *App) basicAuth(next http.Handler) http.Handler {
+	if strings.TrimSpace(a.WebUser) == "" && a.WebPassword == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if ok && constantTimeEqual(user, a.WebUser) && constantTimeEqual(pass, a.WebPassword) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("WWW-Authenticate", `Basic realm="Telecom News Dashboard"`)
+		respondError(w, http.StatusUnauthorized, fmt.Errorf("authentication required"))
+	})
+}
+
+func constantTimeEqual(a, b string) bool {
+	aHash := sha256.Sum256([]byte(a))
+	bHash := sha256.Sum256([]byte(b))
+	return subtle.ConstantTimeCompare(aHash[:], bHash[:]) == 1
+}
+
 func (a *App) health(w http.ResponseWriter, _ *http.Request) {
 	total, _ := a.DB.Count()
+	a.mu.Lock()
+	sourcesCount := len(crawler.TelecomSources)
+	categoriesCount := len(models.TelecomCategories)
+	defaultCategory := models.DefaultCategorySlug()
+	a.mu.Unlock()
 	respondJSON(w, http.StatusOK, map[string]any{
 		"status":           "ok",
 		"articles":         total,
 		"credentials":      len(a.Creds.Credentials),
-		"sources":          len(crawler.TelecomSources),
-		"categories":       len(models.TelecomCategories),
-		"default_category": models.DefaultCategorySlug(),
+		"sources":          sourcesCount,
+		"categories":       categoriesCount,
+		"default_category": defaultCategory,
 	})
 }
 
 func (a *App) sources(w http.ResponseWriter, _ *http.Request) {
+	a.mu.Lock()
+	sources := append([]crawler.Source(nil), crawler.TelecomSources...)
+	a.mu.Unlock()
+
 	store := a.Creds
-	items := make([]map[string]any, 0, len(crawler.TelecomSources))
-	for _, src := range crawler.TelecomSources {
+	items := make([]map[string]any, 0, len(sources))
+	for _, src := range sources {
 		status := "public"
 		if src.RequiresAuth {
 			status = "login_required"
@@ -100,6 +159,78 @@ func (a *App) sources(w http.ResponseWriter, _ *http.Request) {
 	respondJSON(w, http.StatusOK, map[string]any{"sources": items, "count": len(items)})
 }
 
+func (a *App) saveSource(w http.ResponseWriter, r *http.Request) {
+	var input sourceInput
+	if err := decodeJSON(r.Body, &input); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+	src, err := sourceFromInput(input)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	sources := append([]crawler.Source(nil), crawler.TelecomSources...)
+	replaced := false
+	for i := range sources {
+		if strings.EqualFold(sources[i].Name, src.Name) {
+			sources[i] = src
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		sources = append(sources, src)
+	}
+	crawler.UseSources(sources)
+
+	persisted, err := a.persistSources(sources)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusCreated, map[string]any{
+		"source":    sourceView(src),
+		"created":   !replaced,
+		"persisted": persisted,
+	})
+}
+
+func (a *App) deleteSource(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(chi.URLParam(r, "source"))
+	if name == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("source is required"))
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	sources := make([]crawler.Source, 0, len(crawler.TelecomSources))
+	removed := false
+	for _, src := range crawler.TelecomSources {
+		if strings.EqualFold(src.Name, name) {
+			removed = true
+			continue
+		}
+		sources = append(sources, src)
+	}
+	if !removed {
+		respondError(w, http.StatusNotFound, fmt.Errorf("source not found"))
+		return
+	}
+	crawler.UseSources(sources)
+	if _, err := a.persistSources(sources); err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *App) stats(w http.ResponseWriter, _ *http.Request) {
 	total, err := a.DB.Count()
 	if err != nil {
@@ -119,8 +250,13 @@ func (a *App) stats(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (a *App) categories(w http.ResponseWriter, _ *http.Request) {
-	items := make([]map[string]any, 0, len(models.TelecomCategories))
-	for _, cat := range models.TelecomCategories {
+	a.mu.Lock()
+	categories := append([]models.Category(nil), models.TelecomCategories...)
+	defaultCategory := models.DefaultCategorySlug()
+	a.mu.Unlock()
+
+	items := make([]map[string]any, 0, len(categories))
+	for _, cat := range categories {
 		items = append(items, map[string]any{
 			"id":          cat.ID,
 			"name":        cat.Name,
@@ -130,20 +266,108 @@ func (a *App) categories(w http.ResponseWriter, _ *http.Request) {
 		})
 	}
 	respondJSON(w, http.StatusOK, map[string]any{
-		"default_category": models.DefaultCategorySlug(),
+		"default_category": defaultCategory,
 		"categories":       items,
 	})
 }
 
+func (a *App) saveCategory(w http.ResponseWriter, r *http.Request) {
+	var input categoryInput
+	if err := decodeJSON(r.Body, &input); err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+	cat, err := categoryFromInput(input)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	catalog := currentCategoryCatalog()
+	if cat.ID == 0 {
+		cat.ID = nextCategoryID(catalog.Categories)
+	}
+	replaced := false
+	for i := range catalog.Categories {
+		if strings.EqualFold(catalog.Categories[i].Slug, cat.Slug) {
+			catalog.Categories[i] = cat
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		catalog.Categories = append(catalog.Categories, cat)
+	}
+	models.UseCategoryCatalog(catalog)
+
+	persisted, err := a.persistCategories(catalog)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusCreated, map[string]any{
+		"category":  cat,
+		"created":   !replaced,
+		"persisted": persisted,
+	})
+}
+
+func (a *App) deleteCategory(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimSpace(chi.URLParam(r, "slug"))
+	if slug == "" {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("category slug is required"))
+		return
+	}
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	catalog := currentCategoryCatalog()
+	if strings.EqualFold(catalog.DefaultCategory, slug) {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("cannot delete default category %q", slug))
+		return
+	}
+	categories := make([]models.Category, 0, len(catalog.Categories))
+	removed := false
+	for _, cat := range catalog.Categories {
+		if strings.EqualFold(cat.Slug, slug) {
+			removed = true
+			continue
+		}
+		categories = append(categories, cat)
+	}
+	if !removed {
+		respondError(w, http.StatusNotFound, fmt.Errorf("category not found"))
+		return
+	}
+	catalog.Categories = categories
+	models.UseCategoryCatalog(catalog)
+	if _, err := a.persistCategories(catalog); err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *App) validate(w http.ResponseWriter, _ *http.Request) {
+	a.mu.Lock()
+	sources := append([]crawler.Source(nil), crawler.TelecomSources...)
+	categories := append([]models.Category(nil), models.TelecomCategories...)
+	defaultCategory := models.DefaultCategorySlug()
+	sourceWarnings := crawler.ValidateSources()
+	a.mu.Unlock()
+
 	knownAuth := authSourceNames(config.KnownAuthSources)
-	authRequired := sourceNamesRequiringAuth(crawler.TelecomSources)
+	authRequired := sourceNamesRequiringAuth(sources)
 	respondJSON(w, http.StatusOK, map[string]any{
-		"sources":         crawler.ValidateSources(),
-		"categories":      models.ValidateActiveCategories(),
+		"sources":         sourceWarnings,
+		"categories":      models.ValidateCategoryCatalog(&models.CategoryCatalog{DefaultCategory: defaultCategory, Categories: categories}),
 		"auth_sources":    config.ValidateKnownAuthSources(),
 		"auth_links":      crawler.ValidateSourcesAgainstAuth(authRequired, knownAuth),
-		"auth_to_sources": config.ValidateAuthSourcesAgainstSources(config.KnownAuthSources, sourceNames(crawler.TelecomSources)),
+		"auth_to_sources": config.ValidateAuthSourcesAgainstSources(config.KnownAuthSources, sourceNames(sources)),
 	})
 }
 
@@ -193,6 +417,25 @@ func (a *App) searchArticles(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *App) deleteArticle(w http.ResponseWriter, r *http.Request) {
+	rawID := strings.TrimSpace(chi.URLParam(r, "id"))
+	id, err := strconv.ParseInt(rawID, 10, 64)
+	if err != nil || id <= 0 {
+		respondError(w, http.StatusBadRequest, fmt.Errorf("invalid article id %q", rawID))
+		return
+	}
+	removed, err := a.DB.DeleteArticle(id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !removed {
+		respondError(w, http.StatusNotFound, fmt.Errorf("article not found"))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *App) exportCSV(w http.ResponseWriter, r *http.Request) {
 	opts, err := listOptionsFromQuery(r.URL.Query())
 	if err != nil {
@@ -222,9 +465,11 @@ func (a *App) fetch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sources []crawler.Source
+	a.mu.Lock()
 	if req.Source != "" {
 		src, ok := findSource(req.Source)
 		if !ok {
+			a.mu.Unlock()
 			respondError(w, http.StatusNotFound, fmt.Errorf("source %q not found", req.Source))
 			return
 		}
@@ -232,6 +477,7 @@ func (a *App) fetch(w http.ResponseWriter, r *http.Request) {
 	} else {
 		sources = append([]crawler.Source(nil), crawler.TelecomSources...)
 	}
+	a.mu.Unlock()
 
 	results := make([]fetchResult, 0, len(sources))
 	total := 0
@@ -363,6 +609,24 @@ type credentialInput struct {
 	Notes      string            `json:"notes,omitempty"`
 }
 
+type sourceInput struct {
+	Name         string               `json:"name"`
+	FeedURL      string               `json:"feed_url,omitempty"`
+	EndpointURL  string               `json:"endpoint_url,omitempty"`
+	Region       string               `json:"region"`
+	Category     string               `json:"category,omitempty"`
+	RequiresAuth bool                 `json:"requires_auth,omitempty"`
+	AccessMethod crawler.AccessMethod `json:"access_method,omitempty"`
+}
+
+type categoryInput struct {
+	ID          int      `json:"id,omitempty"`
+	Name        string   `json:"name"`
+	Slug        string   `json:"slug"`
+	Description string   `json:"description"`
+	Keywords    []string `json:"keywords,omitempty"`
+}
+
 type credentialView struct {
 	SourceName string            `json:"source_name"`
 	AuthType   config.AuthType   `json:"auth_type"`
@@ -372,6 +636,128 @@ type credentialView struct {
 	RawCookie  bool              `json:"raw_cookie,omitempty"`
 	HeaderName string            `json:"header_name,omitempty"`
 	Notes      string            `json:"notes,omitempty"`
+}
+
+func sourceFromInput(input sourceInput) (crawler.Source, error) {
+	name := strings.TrimSpace(input.Name)
+	region := strings.TrimSpace(input.Region)
+	category := strings.TrimSpace(input.Category)
+	endpoint := strings.TrimSpace(input.EndpointURL)
+	feedURL := strings.TrimSpace(input.FeedURL)
+	method := input.AccessMethod
+	if method == "" {
+		method = crawler.AccessMethodRSS
+	}
+	if endpoint == "" {
+		endpoint = feedURL
+	}
+	if name == "" {
+		return crawler.Source{}, fmt.Errorf("name is required")
+	}
+	if region == "" {
+		return crawler.Source{}, fmt.Errorf("region is required")
+	}
+	if endpoint == "" {
+		return crawler.Source{}, fmt.Errorf("feed_url or endpoint_url is required")
+	}
+	switch method {
+	case crawler.AccessMethodRSS:
+		return crawler.Source{
+			Name:         name,
+			FeedURL:      endpoint,
+			Region:       region,
+			Category:     category,
+			RequiresAuth: input.RequiresAuth,
+		}, nil
+	case crawler.AccessMethodHTMLList, crawler.AccessMethodAPI:
+		return crawler.Source{
+			Name:         name,
+			Region:       region,
+			Category:     category,
+			RequiresAuth: input.RequiresAuth,
+			Access: crawler.AccessConfig{
+				Method: method,
+				URL:    endpoint,
+			},
+		}, nil
+	default:
+		return crawler.Source{}, fmt.Errorf("unsupported access_method %q", method)
+	}
+}
+
+func categoryFromInput(input categoryInput) (models.Category, error) {
+	name := strings.TrimSpace(input.Name)
+	slug := strings.TrimSpace(input.Slug)
+	description := strings.TrimSpace(input.Description)
+	if name == "" {
+		return models.Category{}, fmt.Errorf("name is required")
+	}
+	if slug == "" {
+		return models.Category{}, fmt.Errorf("slug is required")
+	}
+	if description == "" {
+		return models.Category{}, fmt.Errorf("description is required")
+	}
+	keywords := make([]string, 0, len(input.Keywords))
+	for _, keyword := range input.Keywords {
+		if trimmed := strings.TrimSpace(keyword); trimmed != "" {
+			keywords = append(keywords, trimmed)
+		}
+	}
+	return models.Category{
+		ID:          input.ID,
+		Name:        name,
+		Slug:        slug,
+		Description: description,
+		Keywords:    keywords,
+	}, nil
+}
+
+func sourceView(src crawler.Source) map[string]any {
+	status := "public"
+	if src.RequiresAuth {
+		status = "login_required"
+	}
+	return map[string]any{
+		"name":          src.Name,
+		"region":        src.Region,
+		"category":      src.Category,
+		"access_method": src.AccessMethod(),
+		"endpoint_url":  src.EndpointURL(),
+		"requires_auth": src.RequiresAuth,
+		"auth_status":   status,
+	}
+}
+
+func currentCategoryCatalog() *models.CategoryCatalog {
+	return &models.CategoryCatalog{
+		DefaultCategory: models.DefaultCategorySlug(),
+		Categories:      append([]models.Category(nil), models.TelecomCategories...),
+	}
+}
+
+func nextCategoryID(categories []models.Category) int {
+	maxID := 0
+	for _, cat := range categories {
+		if cat.ID > maxID {
+			maxID = cat.ID
+		}
+	}
+	return maxID + 1
+}
+
+func (a *App) persistSources(sources []crawler.Source) (bool, error) {
+	if strings.TrimSpace(a.SourcesPath) == "" {
+		return false, nil
+	}
+	return true, crawler.SaveSourcesToFile(a.SourcesPath, sources)
+}
+
+func (a *App) persistCategories(catalog *models.CategoryCatalog) (bool, error) {
+	if strings.TrimSpace(a.CategoriesPath) == "" {
+		return false, nil
+	}
+	return true, models.SaveCategoryCatalogToFile(a.CategoriesPath, catalog)
 }
 
 func credentialViewFrom(c config.Credential) credentialView {

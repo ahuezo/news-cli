@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"telecom-news-cli/internal/server"
@@ -13,6 +14,8 @@ import (
 var serveAddr string
 var serveReadTimeout time.Duration
 var serveWriteTimeout time.Duration
+var serveWebUser string
+var serveWebPassword string
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
@@ -34,8 +37,18 @@ Examples:
 			return err
 		}
 
-		app := server.New(database, creds)
+		webUser := firstNonEmpty(serveWebUser, os.Getenv("TELECOM_NEWS_WEB_USER"))
+		webPassword := firstNonEmpty(serveWebPassword, os.Getenv("TELECOM_NEWS_WEB_PASSWORD"))
+		if (webUser == "") != (webPassword == "") {
+			return fmt.Errorf("web auth requires both --web-user and --web-password, or TELECOM_NEWS_WEB_USER and TELECOM_NEWS_WEB_PASSWORD")
+		}
+
+		app := server.NewWithCatalogPaths(database, creds, sourcesPath, categoriesPath)
+		app.SetWebAuth(webUser, webPassword)
 		fmt.Printf("API server listening on %s\n", serveAddr)
+		if webUser != "" {
+			fmt.Printf("Web dashboard authentication enabled for user %q\n", webUser)
+		}
 		srv := &http.Server{
 			Addr:         serveAddr,
 			Handler:      app.Router(),
@@ -50,6 +63,17 @@ Examples:
 func init() {
 	serveCmd.Flags().StringVar(&serveAddr, "addr", ":8080", "HTTP listen address")
 	serveCmd.Flags().DurationVar(&serveReadTimeout, "read-timeout", 10*time.Second, "HTTP read timeout")
-	serveCmd.Flags().DurationVar(&serveWriteTimeout, "write-timeout", 20*time.Second, "HTTP write timeout")
+	serveCmd.Flags().DurationVar(&serveWriteTimeout, "write-timeout", 10*time.Minute, "HTTP write timeout")
+	serveCmd.Flags().StringVar(&serveWebUser, "web-user", "", "Username for HTTP Basic Auth on dashboard and API")
+	serveCmd.Flags().StringVar(&serveWebPassword, "web-password", "", "Password for HTTP Basic Auth on dashboard and API")
 	rootCmd.AddCommand(serveCmd)
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }

@@ -129,12 +129,17 @@ func (d *DB) listQuery(opts models.ListOptions) (string, []interface{}) {
 		sortOrder = "ASC"
 	}
 
+	orderBy := fmt.Sprintf("%s %s", sortCol, sortOrder)
+	if sortCol == "published_at" {
+		orderBy = fmt.Sprintf("published_at %s, created_at %s, id %s", sortOrder, sortOrder, sortOrder)
+	}
+
 	query := fmt.Sprintf(`
 		SELECT id, url, title, abstract, published_at, category, region, country, source, created_at
 		FROM articles
 		WHERE %s
-		ORDER BY %s %s`,
-		strings.Join(where, " AND "), sortCol, sortOrder,
+		ORDER BY %s`,
+		strings.Join(where, " AND "), orderBy,
 	)
 	return query, args
 }
@@ -166,7 +171,7 @@ func (d *DB) Search(query string, limit int) ([]models.Article, error) {
 		SELECT id, url, title, abstract, published_at, category, region, country, source, created_at
 		FROM articles
 		WHERE %s
-		ORDER BY published_at DESC
+		ORDER BY published_at DESC, created_at DESC, id DESC
 		LIMIT ?`,
 		strings.Join(where, " AND "),
 	)
@@ -236,6 +241,18 @@ func (d *DB) Count() (int, error) {
 	var n int
 	err := d.conn.QueryRow(`SELECT COUNT(*) FROM articles`).Scan(&n)
 	return n, err
+}
+
+func (d *DB) DeleteArticle(id int64) (bool, error) {
+	res, err := d.conn.Exec(`DELETE FROM articles WHERE id = ?`, id)
+	if err != nil {
+		return false, err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
 }
 
 // scan maps query rows to an Article slice

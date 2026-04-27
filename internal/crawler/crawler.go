@@ -125,6 +125,15 @@ func LoadSourcesFromFile(path string) ([]Source, error) {
 	return parseSources(data)
 }
 
+func SaveSourcesToFile(path string, sources []Source) error {
+	data, err := json.MarshalIndent(sources, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	return os.WriteFile(path, data, 0600)
+}
+
 func UseSources(sources []Source) {
 	TelecomSources = append([]Source(nil), sources...)
 }

@@ -334,7 +334,28 @@ Start the server with:
 ./telecom-news serve --addr :8080
 ```
 
+Recommended private mode for the web UI and API:
+
+```bash
+TELECOM_NEWS_WEB_USER=admin TELECOM_NEWS_WEB_PASSWORD='change-me' ./telecom-news serve --addr :8080
+```
+
+You can also use flags:
+
+```bash
+./telecom-news serve --addr :8080 --web-user admin --web-password 'change-me'
+```
+
+This uses HTTP Basic Auth for `/`, `/dashboard`, and `/api/v1/*`. Keep `/healthz` public for uptime checks. For internet-facing deployments, put the server behind HTTPS, a reverse proxy, or a VPN; Basic Auth should not be sent over plain HTTP outside localhost/trusted networks.
+
 Default base URL: `http://localhost:8080/api/v1`
+
+Open the HTML dashboard in a browser:
+
+```text
+http://localhost:8080/
+http://localhost:8080/dashboard
+```
 
 ### Endpoints
 
@@ -345,14 +366,24 @@ Default base URL: `http://localhost:8080/api/v1`
 | `GET` | `/articles` | List stored articles with filters |
 | `GET` | `/articles/search` | Search articles by `q` |
 | `GET` | `/sources` | List configured sources |
+| `POST` | `/sources` | Add or update a source |
+| `DELETE` | `/sources/{source}` | Remove one source |
 | `GET` | `/stats` | Database totals by category/region |
 | `GET` | `/categories` | List category catalog |
+| `POST` | `/categories` | Add or update a category |
+| `DELETE` | `/categories/{slug}` | Remove one category |
 | `GET` | `/validate` | Validate source/category/auth catalogs |
 | `GET` | `/export/csv` | Export articles as CSV |
 | `GET` | `/credentials` | List saved credentials |
 | `POST` | `/credentials` | Save a credential |
 | `GET` | `/credentials/{source}` | Read one credential |
 | `DELETE` | `/credentials/{source}` | Remove one credential |
+
+Dashboard source/category edits are persisted only when the server is launched with writable override files:
+
+```bash
+./telecom-news serve --sources /path/to/sources.json --categories /path/to/categories.json
+```
 
 ### Examples
 

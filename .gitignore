@@ -1,0 +1,15 @@
+# Local build artifacts
+telecom-news
+telecom-news-cli
+
+# Generated exports and local reports
+*.csv
+
+# Local runtime state
+*.db
+*.db-*
+.telecom-news.db
+.telecom-news-creds.json
+
+# Local tool scratch files
+.codex
