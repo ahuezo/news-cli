@@ -14,5 +14,9 @@ telecom-news-cli
 # Local tool scratch files
 .codex
 
+# Local log files
+fetch.log
+server.log
+
 # Local credentials
 .telecom-news-creds.json
