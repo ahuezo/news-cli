@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,18 +21,20 @@ import (
 	"telecom-news-cli/internal/config"
 	"telecom-news-cli/internal/crawler"
 	"telecom-news-cli/internal/db"
+	"telecom-news-cli/internal/fetchlock"
 	"telecom-news-cli/internal/models"
 )
 
 type App struct {
-	DB             *db.DB
-	Creds          *config.CredentialStore
-	Crawler        *crawler.Crawler
-	SourcesPath    string
-	CategoriesPath string
-	WebUser        string
-	WebPassword    string
-	mu             sync.Mutex
+	DB               *db.DB
+	Creds            *config.CredentialStore
+	Crawler          *crawler.Crawler
+	SourcesPath      string
+	CategoriesPath   string
+	FetchLockTimeout time.Duration
+	WebUser          string
+	WebPassword      string
+	mu               sync.Mutex
 }
 
 func New(database *db.DB, creds *config.CredentialStore) *App {
@@ -40,11 +43,12 @@ func New(database *db.DB, creds *config.CredentialStore) *App {
 
 func NewWithCatalogPaths(database *db.DB, creds *config.CredentialStore, sourcesPath, categoriesPath string) *App {
 	return &App{
-		DB:             database,
-		Creds:          creds,
-		Crawler:        crawler.NewWithCreds(database, creds),
-		SourcesPath:    sourcesPath,
-		CategoriesPath: categoriesPath,
+		DB:               database,
+		Creds:            creds,
+		Crawler:          crawler.NewWithCreds(database, creds),
+		SourcesPath:      sourcesPath,
+		CategoriesPath:   categoriesPath,
+		FetchLockTimeout: 2 * time.Second,
 	}
 }
 
@@ -478,6 +482,17 @@ func (a *App) fetch(w http.ResponseWriter, r *http.Request) {
 		sources = append([]crawler.Source(nil), crawler.TelecomSources...)
 	}
 	a.mu.Unlock()
+
+	lock, err := fetchlock.AcquireForDB(a.DB.Path, a.FetchLockTimeout)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, fetchlock.ErrTimeout) {
+			status = http.StatusConflict
+		}
+		respondError(w, status, fmt.Errorf("another fetch is already running: %w", err))
+		return
+	}
+	defer lock.Release()
 
 	results := make([]fetchResult, 0, len(sources))
 	total := 0

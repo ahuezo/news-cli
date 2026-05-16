@@ -605,11 +605,50 @@ JSON Schemas are available at `schemas/sources.schema.json` and `schemas/auth_so
 
 ---
 
-## Scheduled Crawling (cron)
+## Scheduled Crawling
+
+The CLI serializes fetch jobs with a database-specific lock file (`<db>.fetch.lock`), and SQLite is opened with WAL plus a busy timeout so the HTTP server can keep reading while a scheduled fetch writes.
+
+### cron
 
 ```bash
-# Crawl every 6 hours, log to file
-0 */6 * * * /path/to/telecom-news fetch >> /var/log/telecom-news.log 2>&1
+# Crawl daily at 5am and 6pm, log to file
+0 5,18 * * * /path/to/telecom-news --db /path/to/telecom-news.db fetch --lock-timeout 2m >> /var/log/telecom-news.log 2>&1
+```
+
+### systemd timer
+
+`/etc/systemd/system/telecom-news-fetch.service`:
+
+```ini
+[Unit]
+Description=Fetch telecom news
+
+[Service]
+Type=oneshot
+ExecStart=/path/to/telecom-news --db /path/to/telecom-news.db fetch --lock-timeout 2m
+```
+
+`/etc/systemd/system/telecom-news-fetch.timer`:
+
+```ini
+[Unit]
+Description=Fetch telecom news at 5am and 6pm
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+OnCalendar=*-*-* 18:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable it:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now telecom-news-fetch.timer
 ```
 
 ---

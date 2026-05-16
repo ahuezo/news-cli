@@ -14,6 +14,7 @@ import (
 	"telecom-news-cli/internal/config"
 	"telecom-news-cli/internal/crawler"
 	"telecom-news-cli/internal/db"
+	"telecom-news-cli/internal/fetchlock"
 	"telecom-news-cli/internal/models"
 	catalogschema "telecom-news-cli/schemas"
 	"text/tabwriter"
@@ -29,6 +30,7 @@ var (
 	categoriesPath   string
 	authOverridePath string
 	verbose          bool
+	fetchLockTimeout time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -133,8 +135,15 @@ Credentials are loaded automatically for sources that require login.
 Examples:
   telecom-news fetch
   telecom-news fetch "BNamericas Telecom"
-  telecom-news fetch --verbose`,
+  telecom-news fetch --verbose
+  telecom-news fetch --lock-timeout 2m`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		lock, err := fetchlock.AcquireForDB(dbPath, fetchLockTimeout)
+		if err != nil {
+			return fmt.Errorf("another fetch is already running for %s: %w", dbPath, err)
+		}
+		defer lock.Release()
+
 		database, err := openDB()
 		if err != nil {
 			return err
@@ -171,6 +180,10 @@ Examples:
 		}
 		return nil
 	},
+}
+
+func init() {
+	fetchCmd.Flags().DurationVar(&fetchLockTimeout, "lock-timeout", 30*time.Second, "How long fetch waits for another fetch job using the same database")
 }
 
 // ─── LIST ─────────────────────────────────────────────────────────────────────

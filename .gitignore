@@ -4,6 +4,7 @@ telecom-news-cli
 
 # Generated exports and local reports
 *.csv
+*.log
 
 # Local runtime state
 *.db
