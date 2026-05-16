@@ -433,8 +433,8 @@
     <main class="shell">
       <section class="hero">
         <div class="masthead">
-          <div class="eyebrow">Telecom News CLI</div>
-          <h1>News room</h1>
+          <div class="eyebrow">Telecom & Bussines</div>
+          <h1>News Cralwer</h1>
           <p class="lede">
             Browse stored articles, crawl sources, inspect catalogs, export CSV,
             and manage source credentials.
@@ -537,7 +537,10 @@
               </label>
               <label class="full"
                 >Feed or Endpoint URL
-                <input id="sourceURL" placeholder="https://example.com/feed.xml" />
+                <input
+                  id="sourceURL"
+                  placeholder="https://example.com/feed.xml"
+                />
               </label>
               <label
                 >Region
@@ -690,7 +693,10 @@
               </div>
             </div>
             <div id="articles" class="article-list"></div>
-            <div class="button-row" style="justify-content: space-between; margin-top: 16px">
+            <div
+              class="button-row"
+              style="justify-content: space-between; margin-top: 16px"
+            >
               <button class="secondary" id="prevPage">Previous Page</button>
               <span class="small" id="pageStatus">Page 1</span>
               <button class="secondary" id="nextPage">Next Page</button>
@@ -950,14 +956,15 @@
         </article>`;
             })
             .join("") ||
-              '<p class="notice">No articles match the current filters.</p>';
+          '<p class="notice">No articles match the current filters.</p>';
       }
 
       function renderPagination() {
         $("pageStatus").textContent = state.articleSearchMode
           ? "Search results"
           : `Page ${state.articlePage}`;
-        $("prevPage").disabled = state.articleSearchMode || state.articlePage <= 1;
+        $("prevPage").disabled =
+          state.articleSearchMode || state.articlePage <= 1;
         $("nextPage").disabled =
           state.articleSearchMode || !state.articleHasNextPage;
       }

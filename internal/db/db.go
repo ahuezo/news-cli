@@ -18,10 +18,11 @@ type DB struct {
 
 // Open opens (or creates) the SQLite database
 func Open(path string) (*DB, error) {
-	conn, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_foreign_keys=on")
+	conn, err := sql.Open("sqlite3", path+"?_journal_mode=WAL&_foreign_keys=on&_busy_timeout=10000")
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
+	conn.SetMaxOpenConns(1)
 	d := &DB{conn: conn, Path: path}
 	if err := d.migrate(); err != nil {
 		return nil, fmt.Errorf("migrate: %w", err)

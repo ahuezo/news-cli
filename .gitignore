@@ -9,7 +9,9 @@ telecom-news-cli
 *.db
 *.db-*
 .telecom-news.db
-.telecom-news-creds.json
 
 # Local tool scratch files
 .codex
+
+# Local credentials
+.telecom-news-creds.json
